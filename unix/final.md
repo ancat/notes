@@ -42,6 +42,8 @@ cc_t     c_cc[NCCS];   /* control chars */
 - Terminal settings can be viewed by running `stty -a`
 - Settings regarding input start with I (eg `IGNCR`), output with O (eg `ONOCR`)
 
+#### Errors
+- If the file descriptor doesn't belong to a terminal
 
 ### Networking
 `#include <sys/socket.h>`
@@ -91,6 +93,13 @@ Connect to a server using an open socket. **Returns 0 on success.**
 
 - `bind()` requires a `socklen_t` size because `sockaddr` objects can be different size depending on the protocol.
 - Both read() and write() can be used in place of recv() and write(), but lack specialized socket stuff. read() is equivalent to recv() with flags set to 0. Not true on windows
+- `recv()` returns 0 when the connection closes gracefully
+
+#### Errors
+
+- SIGPIPE on writing to disconnected socket
+    - Fix by SIGPIPE handler or set SO_NOSIGPIPE option on socket
+
 
 ### Client / Server. I/O multiplexing.
 
@@ -102,17 +111,60 @@ Connect to a server using an open socket. **Returns 0 on success.**
 
 `int select(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, struct timeval *timeout)`
 
+`nfds` is the number of file descriptors you want to monitor. `readfds` is basically an array of the file descriptors you want to be able to read from. `writefds` is the same but for writing. `exceptfds` idk. `timeout` is a timeval struct that takes seconds and microseconds.
+
+`int pselect(int nfds, fd_set *readfds, fd_set *writefds,  fd_set *exceptfds, const struct timespec *timeout, const sigset_t *sigmask);`
+
+Same thing as above, except timeout is a `timespec` which takes seconds and *nanoseconds*. It also takes a sigmask, which specifies the signals that should be blocked for the duration of the pselect call. **This avoids the race condition that would be present by using sigprocmask and then select() right away**
+
 #### Overview
+
+- create an fd_set, empty it with `FD_ZERO(&fd_set)`
+- add your file descriptors to it using `FD_SET(fd, &fd_set)`
+- in a loop, call `select()`
+    - It'll block until it hits timeout or an fd becomes ready
+    - Use `FD_ISSET(fd, &fd_set)` to check if `fd` is ready
+- `fd_set` gets reset after the call to `select()` so you need to rebuild it
 
 #### Trivia
 
 - `select()`'s timeout uses `timeval` (*seconds and microseconds*) while `pselect()'s` timeout uses `timespec` (*seconds and nanoseconds*)
 - `select()` might modify its timeout variable to let the user know how much time was remaining. `pselect()` does not.
 - `select()` cannot handle signals and does not take a sigmask. `pselect()` does. **select is pretty much pselect, but with sigmask set to NULL.**
+- `pselect()` solves the race condition issue with `sigprocmask()` and `select()` combined. `pselect` is a single atomic syscall
+- `fd_set` gets reset after every call to select
+- timeouts: 0 seconds 0 nano/microseconds: return immediately; NULL timeout: block indefinitely
 
 ### Multi-threading: basics, mutual exclusion
 
+`#include <pthread.h>`
+
+Needs to be compiled with -lpthread.
+
+#### Key Functions & Things
+
+`int pthread_create(pthread_t *thread, const pthread_attr_t *attr, void *(*start_routine) (void *), void *arg);` 
+
+Make the thread. You need to instantiate a pthread_t object and pass it to this function, where it will then be modified. Once the thread starts, it will call `start_routine` with the parameter `arg`.
+
+`int pthread_join(pthread_t thread, void **retval)`
+
+Wait for a thread to finish execution. After creating a bunch of threads, you could call this function so that the next piece of code that executes can be sure that all the threads are done. If `retval` is not null, it will contain a pointer to the return value from the thread (basically what was passed to `pthread_exit()`)
+
+`void pthread_exit(void *retval)`
+
+Exits the current running thread and returns whatever `retval` is.
+
+`int pthread_mutex_lock(pthread_mutex_t *mutex);`
+
+`int pthread_mutex_trylock(pthread_mutex_t *mutex)`
+
+`int pthread_mutex_unlock(pthread_mutex_t *mutex)`
+
+
 ### Multi-threading: bounded buffers, condition variables
+
+Condition variables are like mutexes. Mutexes synchronize threads by blocking access to data, while condtion variables synchronize threads by reading the value of the data
 
 ### Multi-threading: deadlocks
 
@@ -120,7 +172,42 @@ Connect to a server using an open socket. **Returns 0 on success.**
 
 ### Sys V IPC. Semaphores and shared memory.
 
-### Shell scripting
+`#include <sys/ipc.h>`
 
-### TBD
+`#include <sys/shm.h>`
+
+Shared memory API allows virtual memory space of different processes to point to the same physical location in RAM. This allows for IPC because they can read and write to the same piece of memory.
+
+#### Key Functions & Things
+
+`int shmget(key_t key, size_t size, int shmflg)`
+
+`key` is the unique key shared between the processes using the memory. Safest to generate using `ftok()`. `size` is how big of an allocation you want, and `shmflg` is the flags. 
+
+`void *shmat(int shmid, const void *shmaddr, int shmflg)`
+
+`shmid` is the id given to you by `shmget()`. `shmaddr` can be the address where you want the mapping, or NULL if you want one given to you. `shmflag` allows you to specify things like readonly etc. This function is necessary so that you can read and write to the shared memory.
+
+`int shmdt(const void *shmaddr)`
+
+This takes the virtual address given by `shmat()` and "detaches" from it. 
+
+`int shmctl(int shmid, int cmd, struct shmid_ds *buf)`
+
+Like fcntl but for shared memory. 
+
+#### Overview
+
+- create a unique key that can be determined by both processes
+    - `ftok()` for example takes a current file and gives a key
+- `shmget()` to allocate your memory
+- `shmat()` to attach to it
+    - you now have a virtual address that can be used as a regular pointer but can be shared across processes
+- `shmdt()` to detach the piece of shared memory
+
+#### Trivia
+
+- If using `ftok()` to generate a key, the file passed to it must exist (it fstats the path)
+- Though the virtual addresses between the two processes will differ, the underlying physical addresses will be the same
+
 
