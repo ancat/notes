@@ -210,4 +210,38 @@ Like fcntl but for shared memory.
 - If using `ftok()` to generate a key, the file passed to it must exist (it fstats the path)
 - Though the virtual addresses between the two processes will differ, the underlying physical addresses will be the same
 
+#### Semaphores
 
+`int semget(key_t key, int nsems, int semflg);`
+
+    union semun {
+        int              val;    /* Value for SETVAL */
+        struct semid_ds *buf;    /* Buffer for IPC_STAT, IPC_SET */
+        unsigned short  *array;  /* Array for GETALL, SETALL */
+        struct seminfo  *__buf;  /* Buffer for IPC_INFO
+                                    (Linux-specific) */
+    };
+
+`semun` union. Code has to define this!
+
+    union semun se;
+    se.val = 10;
+    semctl(semid, 0, IPC_SET, se)
+
+Initialization of semaphore.
+
+`int semop(int semid, struct sembuf *sops, unsigned nsops);`
+
+Semops...
+
+    sembuf op;
+    op.sem_num = 0;
+    op.sem_op = 1;
+    op.sem_flg = SEM_UNDO;
+    semop(semid, &op, 1);
+
+Up a semaphore.
+
+`semctl(semid, 0, IPC_RMID);`
+
+Remove a semaphore set.
