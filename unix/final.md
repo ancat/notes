@@ -76,6 +76,16 @@ Accepts a connection. The `sockaddr` struct is only needed if you want informati
 
 Connect to a server using an open socket. **Returns 0 on success.**
 
+Connect to a server using an open socket. **Returns 0 on success.**
+
+    struct sockaddr_in sa;
+    memset(&sa, 0, sizeof(sa));
+    sa.sin_family = AF_INET;
+    sa.sin_port = htons(9999);
+    sa.sin_addr.sa_addr = aton("0.0.0.0");
+
+Sample initialization of sockaddr_in.
+
 #### Overview
 
 - Server
@@ -116,6 +126,10 @@ Connect to a server using an open socket. **Returns 0 on success.**
 `int pselect(int nfds, fd_set *readfds, fd_set *writefds,  fd_set *exceptfds, const struct timespec *timeout, const sigset_t *sigmask);`
 
 Same thing as above, except timeout is a `timespec` which takes seconds and *nanoseconds*. It also takes a sigmask, which specifies the signals that should be blocked for the duration of the pselect call. **This avoids the race condition that would be present by using sigprocmask and then select() right away**
+
+`select` modifies the fd_sets passed in. Ensure that they are re-initialized before the next call.
+
+`FD_SET()` `FD_ISSET()` `FD_ZERO()`
 
 #### Overview
 
@@ -161,12 +175,43 @@ Exits the current running thread and returns whatever `retval` is.
 
 `int pthread_mutex_unlock(pthread_mutex_t *mutex)`
 
+#### Overview
+
+`pthread_create(pthread_t *thread, const pthread_attr_t *attr, void *(*start_routine) (void *), void *arg);`
+
+Creates a new thread
+
+`int pthread_detach(pthread_t thread);`
+
+Detaches a thread. You can do this in the spawned thread like so `pthread_detach(pthread_self());`
+
+`int pthread_join(pthread_t thread, void **retval);`
+
+Join a thread. `retval` can be NULL if you don't care
+
+- Three types of mutexes
+    - fast - `PTHREAD_MUTEX_INITIALIZER`
+    - recursive - `PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP`
+    - errorcheck - `PTHREAD_ERRORCHECK_MUTEX_INITIALIZER_NP`
+- `pthread_mutex_init` required for none-static mutexes
+- `pthread_mutex_lock()` used to lock
+- `pthread_mutex_trylock()` used to lock
+- `pthread_mutex_unlock()` used to unlock
+
+#### Trivia
+
+- Pthreads functions return the error code as opposed to setting errno
+
 
 ### Multi-threading: bounded buffers, condition variables
 
 Condition variables are like mutexes. Mutexes synchronize threads by blocking access to data, while condtion variables synchronize threads by reading the value of the data
 
 ### Multi-threading: deadlocks
+
+pthread mutexs can be initialized with errorcheck_np. This will detect if the thread will deadlock when trying to obtain a mutex it already owns
+
+Contrast with recursive.
 
 ### Non-blocking I/O. Regular expressions.
 
@@ -245,3 +290,8 @@ Up a semaphore.
 `semctl(semid, 0, IPC_RMID);`
 
 Remove a semaphore set.
+
+##### Trivia
+
+- These are Sys V semaphores. POSIX has a (simpler) semaphore implementation too.
+
