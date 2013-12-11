@@ -276,6 +276,10 @@ Like fcntl but for shared memory.
 
 `int semget(key_t key, int nsems, int semflg);`
 
+`int semid = semget(IPC_PRIVATE, 1, 0600);`
+
+Get a semaphore. Note that the value is undefined!
+
     union semun {
         int              val;    /* Value for SETVAL */
         struct semid_ds *buf;    /* Buffer for IPC_STAT, IPC_SET */
