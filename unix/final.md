@@ -102,7 +102,7 @@ Sample initialization of sockaddr_in.
 #### Trivia
 
 - `bind()` requires a `socklen_t` size because `sockaddr` objects can be different size depending on the protocol.
-- Both read() and write() can be used in place of recv() and write(), but lack specialized socket stuff. read() is equivalent to recv() with flags set to 0. Not true on windows
+- Both read() and write() can be used in place of recv() and send(), but lack specialized socket stuff. read() is equivalent to recv() with flags set to 0. Not true on Windows.
 - `recv()` returns 0 when the connection closes gracefully
 
 #### Errors
@@ -126,6 +126,8 @@ Sample initialization of sockaddr_in.
 `int pselect(int nfds, fd_set *readfds, fd_set *writefds,  fd_set *exceptfds, const struct timespec *timeout, const sigset_t *sigmask);`
 
 Same thing as above, except timeout is a `timespec` which takes seconds and *nanoseconds*. It also takes a sigmask, which specifies the signals that should be blocked for the duration of the pselect call. **This avoids the race condition that would be present by using sigprocmask and then select() right away**
+
+Any of the pointers may be NULL. However, if both `readfds` and `writefds` are NULL, `select` blocks forever.
 
 `select` modifies the fd_sets passed in. Ensure that they are re-initialized before the next call.
 
@@ -165,9 +167,23 @@ Make the thread. You need to instantiate a pthread_t object and pass it to this 
 
 Wait for a thread to finish execution. After creating a bunch of threads, you could call this function so that the next piece of code that executes can be sure that all the threads are done. If `retval` is not null, it will contain a pointer to the return value from the thread (basically what was passed to `pthread_exit()`)
 
+`int pthread_detach(pthread_t thread);`
+
+Detaches a thread. You can do this in the spawned thread like so `pthread_detach(pthread_self());`
+
 `void pthread_exit(void *retval)`
 
 Exits the current running thread and returns whatever `retval` is.
+
+`int pthread_mutex_init(pthread_mutex_t *mutex, const pthread_mutexattr_t *mutexattr);`
+
+Used for mutex initalization. `mutexattr` can be NULL.
+
+Three types of mutexes
+
+- fast - `PTHREAD_MUTEX_INITIALIZER`
+- recursive - `PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP`
+- errorcheck - `PTHREAD_ERRORCHECK_MUTEX_INITIALIZER_NP`
 
 `int pthread_mutex_lock(pthread_mutex_t *mutex);`
 
@@ -175,47 +191,48 @@ Exits the current running thread and returns whatever `retval` is.
 
 `int pthread_mutex_unlock(pthread_mutex_t *mutex)`
 
-#### Overview
-
-`pthread_create(pthread_t *thread, const pthread_attr_t *attr, void *(*start_routine) (void *), void *arg);`
-
-Creates a new thread
-
-`int pthread_detach(pthread_t thread);`
-
-Detaches a thread. You can do this in the spawned thread like so `pthread_detach(pthread_self());`
-
-`int pthread_join(pthread_t thread, void **retval);`
-
-Join a thread. `retval` can be NULL if you don't care
-
-- Three types of mutexes
-    - fast - `PTHREAD_MUTEX_INITIALIZER`
-    - recursive - `PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP`
-    - errorcheck - `PTHREAD_ERRORCHECK_MUTEX_INITIALIZER_NP`
-- `pthread_mutex_init` required for none-static mutexes
-- `pthread_mutex_lock()` used to lock
-- `pthread_mutex_trylock()` used to lock
-- `pthread_mutex_unlock()` used to unlock
-
-#### Trivia
-
-- Pthreads functions return the error code as opposed to setting errno
-
+`int pthread_mutex_destroy(pthread_mutex_t *mutex);`
 
 ### Multi-threading: bounded buffers, condition variables
 
 Condition variables are like mutexes. Mutexes synchronize threads by blocking access to data, while condtion variables synchronize threads by reading the value of the data
 
+`pthread_cond_t cond = PTHREAD_COND_INITIALIZER;`
+
+`int pthread_cond_init(pthread_cond_t *cond, pthread_condattr_t *cond_attr);`
+
+Initialize a condition variable. `cond_attr` can be NULL.
+
+`int pthread_cond_signal(pthread_cond_t *cond);`
+
+Signal the cond variable.
+
+`int pthread_cond_broadcast(pthread_cond_t *cond);`
+
+Signal to ALL threads waiting on the cond variable.
+
+`int pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex);`
+
+Guess?
+
+`int pthread_cond_destroy(pthread_cond_t *cond);`
+
+Frees you of your worldly obligations.
+
 ### Multi-threading: deadlocks
 
-pthread mutexs can be initialized with errorcheck_np. This will detect if the thread will deadlock when trying to obtain a mutex it already owns
-
-Contrast with recursive.
+pthread mutexs can be initialized with errorcheck_np. This will detect if the thread will deadlock when trying to obtain a mutex it already owns.
 
 ### Non-blocking I/O. Regular expressions.
 
+    int flags = fcntl(fd, F_GETFL, 0);
+    fcntl(fd, F_SETFL, flags | O_NONBLOCK);
+
+Remember the flag name, you tool.
+
 ### Sys V IPC. Semaphores and shared memory.
+
+`#include <sys/types.h>`
 
 `#include <sys/ipc.h>`
 
