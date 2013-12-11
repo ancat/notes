@@ -121,7 +121,7 @@ Sample initialization of sockaddr_in.
 
 `int select(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, struct timeval *timeout)`
 
-`nfds` is the number of file descriptors you want to monitor. `readfds` is basically an array of the file descriptors you want to be able to read from. `writefds` is the same but for writing. `exceptfds` idk. `timeout` is a timeval struct that takes seconds and microseconds.
+`nfds` is the MAX_FD + 1. `readfds` is basically an array of the file descriptors you want to be able to read from. `writefds` is the same but for writing. `exceptfds` idk. `timeout` is a timeval struct that takes seconds and microseconds.
 
 `int pselect(int nfds, fd_set *readfds, fd_set *writefds,  fd_set *exceptfds, const struct timespec *timeout, const sigset_t *sigmask);`
 
@@ -294,4 +294,3 @@ Remove a semaphore set.
 ##### Trivia
 
 - These are Sys V semaphores. POSIX has a (simpler) semaphore implementation too.
-
