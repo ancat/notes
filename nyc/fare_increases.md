@@ -1,0 +1,27 @@
+# Fare Timeline
+
+- 5 cents from the beginning IRT days
+- (1948) 10 cents by Robert Moses and **Mayor O'Dwyer**
+    - O'Dwyer didn't always support it
+    - Changed his mind after becoming friends with Quill
+- (1953) 15 cents voted on by the **NYCTA**
+    - First time tokens were introduced
+    - Rapid transit needed money, besides fare increase
+        - Service cut (no night service/redundant bus service
+        - Workforce cut significantly
+- (1966) 20 cents thanks to generous contract given by **Mayor Lindsay** for the NYCTA strikers
+    - Wagner (previous mayor) and Quill went back and forth, Wagner had enough and did not run for re-election
+        - Passed off the TWU nonsense to Mayor Lindsay
+- (1970) 30 cents thanks to **MTA** settlement with TWU strikers
+    - MTA originally known as Metropolitan Commuter Transportation Authority
+- (1972) 35 cents under **Mayor Beame**
+    - Huge financial crisis, NYC almost bankrupt
+    - Almost 100k workers let go
+- (1975) 50 cents still under **Mayor Beame**
+    - Financial crisis still going on
+- (1980) 60 cents by **Mayor Koch**
+    - MTA and TWU had a dispute, impartial mediator suggested a settlement for TWU to end the 11 day strike
+    - Contract was deemed way too generous by the city and Koch
+    - Fare needed to be raised to support this
+- (1981) 75 cents by **Mayor Koch**
+    - Same reason
